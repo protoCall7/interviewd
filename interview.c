@@ -17,11 +17,12 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <string.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include <signal.h>
@@ -105,6 +106,19 @@ int main(int argc, char *argv[])
             get_in_addr((struct sockaddr *)&their_addr),
             s, sizeof s);
         printf("server: got connection from %s\n", s);
+
+        // child process starts here
+        if (!fork()) { 
+            // the child doesn't need the socket
+            close(sock); 
+            if (send(new_fd, "Hello, world!\n", 14, 0) == -1)
+                perror("send");
+            close(new_fd);
+            exit(0);
+        }
+
+        // parent doesn't need the connection
+        close(new_fd);
     }
 
     return 0;
