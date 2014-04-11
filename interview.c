@@ -24,13 +24,16 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #include "net.h"
+#include "fork.h"
 
 int main(int argc, char *argv[])
 {
     int status, sock, new_fd, errno;
     struct addrinfo hints, *res, *p;
     struct sockaddr_storage their_addr;
+    struct sigaction sa;
     socklen_t sin_size;
     char s[INET6_ADDRSTRLEN];
 
@@ -74,8 +77,20 @@ int main(int argc, char *argv[])
         exit(5);
     }
 
+    sa.sa_handler = sigchld_handler; // reap all dead processes
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+
+    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(6);
+    }
+
     printf("Now waiting for connections\n");
 
+    /*-----------------------------------------------------------------------------
+     *  main loop starts here!!
+     *-----------------------------------------------------------------------------*/
     while (1) {
         sin_size = sizeof their_addr;
         
