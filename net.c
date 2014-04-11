@@ -1,9 +1,9 @@
 /*
  * =====================================================================================
  *
- *       Filename:  fucker.c
+ *       Filename:  net.c
  *
- *    Description:  libfucker implementation for interview daemon
+ *    Description:  network implementation for interview daemon
  *
  *        Version:  1.0
  *        Created:  04/11/2014 13:22:36
@@ -18,7 +18,7 @@
 
 #include <sys/socket.h>
 #include <netdb.h>
-#include "fucker.h"
+#include "net.h"
 
 // return a pointer to the client address string
 void *get_in_addr(struct sockaddr *sa)

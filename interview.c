@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <arpa/inet.h>
-#include "fucker.h"
+#include "net.h"
 
 int main(int argc, char *argv[])
 {

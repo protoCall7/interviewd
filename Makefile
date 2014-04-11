@@ -1,10 +1,10 @@
 all: interview
 
-interview: fucker.o
-	gcc -o interview interview.c fucker.o
+interview: net.o
+	gcc -o interview interview.c net.o
 
-fucker.o:	
-	gcc -o fucker.o -c fucker.c
+net.o:	
+	gcc -o net.o -c net.c
 
 clean:
 	rm -rf *.o interview
