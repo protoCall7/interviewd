@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
         
         // accept incoming connections
         if ((new_fd = accept(sock, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
-            syslog(LOG_ERR, strerror(errno));
+            syslog(LOG_ERR, "failed to accept connection: %m");
             continue;
         }
 
