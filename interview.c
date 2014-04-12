@@ -113,11 +113,16 @@ int main(int argc, char *argv[])
         syslog(LOG_INFO, "received connection from %s\n", s);
 
         // child process starts here
-        if (!fork()) { 
-            // the child doesn't need the socket
+        status = fork();
+        if (status == -1) {
+            syslog(LOG_ERR, "failed to fork: %m");
+            exit(7); 
+        }
+
+        if (!status) { 
+            // the child doesn't need the original socket
             close(sock); 
 
-            
             if (send(new_fd, "Hello, world!\n", 14, 0) == -1)
                 syslog(LOG_ERR, "failed to send: %m");
 
@@ -125,7 +130,7 @@ int main(int argc, char *argv[])
             exit(0);
         }
 
-        // parent doesn't need the connection
+        // parent doesn't need the new connection
         close(new_fd);
     }
 
