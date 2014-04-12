@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <syslog.h>
 #include "net.h"
 #include "fork.h"
 
@@ -44,28 +45,31 @@ int main(int argc, char *argv[])
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
+    // connect to syslog
+    openlog("interviewd", LOG_PID, LOG_DAEMON);
+
     // fill out the res structure from values in hints
     if ((status = getaddrinfo(NULL, PORT, &hints, &res)) != 0) {
-        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        syslog(LOG_ERR, "failed to getaddrinfo: %s", gai_strerror(status));
         exit(1);
     }
 
     // loop through linked list and bind to first address possible
     for (p = res; p != NULL; p = p->ai_next) {
         if ((sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-            perror("socket error");
+            syslog(LOG_ERR, "failed to create socket: %m");
             exit(2);
         }
 
         if ((status = bind(sock, p->ai_addr, p->ai_addrlen)) != 0) {
-            perror("bind error");
+            syslog(LOG_ERR, "failed to bind socket: %m");
             exit(3); 
         } 
         break;
     }
     
     if (p == NULL)  {
-        fprintf(stderr, "server: failed to bind\n");
+        syslog(LOG_ERR, "failed to bind to socket");
         exit(4);
     }
 
@@ -74,20 +78,21 @@ int main(int argc, char *argv[])
 
     // start listening on bound socket and enter main loop
     if ((status = listen(sock, QUEUE)) != 0 ) {
-        perror("listen error");
+        syslog(LOG_ERR, "failed to listen on socket: %m");
         exit(5);
     }
 
-    sa.sa_handler = sigchld_handler; // reap all dead processes
+    // reap all dead processes and set up signal handler
+    sa.sa_handler = sigchld_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
 
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        perror("sigaction");
+        syslog(LOG_ERR, "failed to set up sigaction: %m");
         exit(6);
     }
 
-    printf("Now waiting for connections\n");
+    syslog(LOG_INFO, "waiting for connections\n");
 
     /*-----------------------------------------------------------------------------
      *  main loop starts here!!
@@ -97,7 +102,7 @@ int main(int argc, char *argv[])
         
         // accept incoming connections
         if ((new_fd = accept(sock, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
-            perror("accept");
+            syslog(LOG_ERR, strerror(errno));
             continue;
         }
 
@@ -105,14 +110,17 @@ int main(int argc, char *argv[])
         inet_ntop(their_addr.ss_family,
             get_in_addr((struct sockaddr *)&their_addr),
             s, sizeof s);
-        printf("server: got connection from %s\n", s);
+        syslog(LOG_INFO, "received connection from %s\n", s);
 
         // child process starts here
         if (!fork()) { 
             // the child doesn't need the socket
             close(sock); 
+
+            
             if (send(new_fd, "Hello, world!\n", 14, 0) == -1)
-                perror("send");
+                syslog(LOG_ERR, "failed to send: %m");
+
             close(new_fd);
             exit(0);
         }
@@ -121,5 +129,6 @@ int main(int argc, char *argv[])
         close(new_fd);
     }
 
+    closelog();
     return 0;
 }
