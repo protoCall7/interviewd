@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 {
     int status, sock, new_fd, errno;
     struct addrinfo hints, *res, *p;
-    struct sockaddr_storage their_addr;
+    struct sockaddr_storage remote_addr;
     struct sigaction sa;
     socklen_t sin_size;
     char s[INET6_ADDRSTRLEN];
@@ -88,29 +88,28 @@ int main(int argc, char *argv[])
     sa.sa_flags = SA_RESTART;
 
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        syslog(LOG_ERR, "failed to set up sigaction: %m");
+        syslog(LOG_ERR, "failed to set up signal handler: %m");
         exit(6);
     }
 
-    syslog(LOG_INFO, "waiting for connections\n");
+    syslog(LOG_INFO, "waiting for connections");
 
     /*-----------------------------------------------------------------------------
      *  main loop starts here!!
      *-----------------------------------------------------------------------------*/
     while (1) {
-        sin_size = sizeof their_addr;
+        sin_size = sizeof remote_addr;
         
         // accept incoming connections
-        if ((new_fd = accept(sock, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
+        if ((new_fd = accept(sock, (struct sockaddr *)&remote_addr, &sin_size)) == -1) {
             syslog(LOG_ERR, "failed to accept connection: %m");
             continue;
         }
 
         // report new connection
-        inet_ntop(their_addr.ss_family,
-            get_in_addr((struct sockaddr *)&their_addr),
-            s, sizeof s);
-        syslog(LOG_INFO, "received connection from %s\n", s);
+        inet_ntop(remote_addr.ss_family,
+            get_in_addr((struct sockaddr *)&remote_addr), s, sizeof s);
+        syslog(LOG_INFO, "received connection from %s", s);
 
         // child process starts here
         status = fork();
