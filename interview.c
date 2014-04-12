@@ -58,12 +58,12 @@ int main(int argc, char *argv[])
     for (p = res; p != NULL; p = p->ai_next) {
         if ((sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             syslog(LOG_ERR, "failed to create socket: %m");
-            exit(2);
+            continue;
         }
 
         if ((status = bind(sock, p->ai_addr, p->ai_addrlen)) != 0) {
             syslog(LOG_ERR, "failed to bind socket: %m");
-            exit(3); 
+            continue; 
         } 
         break;
     }
