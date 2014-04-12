@@ -32,15 +32,20 @@
 
 int main(int argc, char *argv[])
 {
-    int status, sock, new_fd, errno;
+    pid_t pid, sid;
     struct addrinfo hints, *res, *p;
+    int status, sock, new_fd, errno;
     struct sockaddr_storage remote_addr;
     struct sigaction sa;
     socklen_t sin_size;
     char s[INET6_ADDRSTRLEN];
-    pid_t pid, sid;
 
-    // set up daemon
+    // connect to syslog
+    openlog("interviewd", LOG_PID, LOG_DAEMON);
+
+    /*-----------------------------------------------------------------------------
+     *  start up daemon process
+     *-----------------------------------------------------------------------------*/
     pid = fork();
 
     if (pid == -1) {
@@ -71,9 +76,6 @@ int main(int argc, char *argv[])
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    // connect to syslog
-    openlog("interviewd", LOG_PID, LOG_DAEMON);
-
     // fill out the res structure from values in hints
     if ((status = getaddrinfo(NULL, PORT, &hints, &res)) != 0) {
         syslog(LOG_ERR, "failed to getaddrinfo: %s", gai_strerror(status));
@@ -94,7 +96,7 @@ int main(int argc, char *argv[])
         break;
     }
     
-    if (p == NULL)  {
+    if (p == NULL) {
         syslog(LOG_ERR, "failed to bind to socket");
         exit(1);
     }
