@@ -38,8 +38,34 @@ int main(int argc, char *argv[])
     struct sigaction sa;
     socklen_t sin_size;
     char s[INET6_ADDRSTRLEN];
+    pid_t pid, sid;
 
-    // set up hints structure
+    // set up daemon
+    pid = fork();
+
+    if (pid == -1) {
+        syslog(LOG_ERR, "failed to fork daemon process: %m");
+        exit(1);
+    }
+    
+    if (pid > 1) {
+        syslog(LOG_INFO, "forked daemon process, pid: %d", pid);
+        exit(0);
+    }
+
+    if((sid = setsid()) == -1) {
+        syslog(LOG_ERR, "failed to set process group: %m");
+        exit(1);
+    }
+    
+    chdir("/");
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+
+    /*-----------------------------------------------------------------------------
+     *  we're now in the deamon process.  start setting up networking
+     *-----------------------------------------------------------------------------*/
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -70,7 +96,7 @@ int main(int argc, char *argv[])
     
     if (p == NULL)  {
         syslog(LOG_ERR, "failed to bind to socket");
-        exit(4);
+        exit(1);
     }
 
     // we don't need this anymore
@@ -79,7 +105,7 @@ int main(int argc, char *argv[])
     // start listening on bound socket and enter main loop
     if ((status = listen(sock, QUEUE)) != 0 ) {
         syslog(LOG_ERR, "failed to listen on socket: %m");
-        exit(5);
+        exit(1);
     }
 
     // reap all dead processes and set up signal handler
@@ -89,7 +115,7 @@ int main(int argc, char *argv[])
 
     if (sigaction(SIGCHLD, &sa, NULL) == -1) {
         syslog(LOG_ERR, "failed to set up signal handler: %m");
-        exit(6);
+        exit(1);
     }
 
     syslog(LOG_INFO, "waiting for connections");
@@ -115,7 +141,7 @@ int main(int argc, char *argv[])
         status = fork();
         if (status == -1) {
             syslog(LOG_ERR, "failed to fork: %m");
-            exit(7); 
+            exit(1); 
         }
 
         if (!status) { 
