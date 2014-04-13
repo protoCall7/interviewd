@@ -39,8 +39,6 @@ int main(int argc, char *argv[])
     struct sigaction sa;
     socklen_t sin_size;
     char s[INET6_ADDRSTRLEN];
-    size_t bufsize = 2048;
-    char *buffer = malloc(bufsize);
 
     // connect to syslog
     openlog("interviewd", LOG_PID, LOG_DAEMON);
@@ -149,6 +147,9 @@ int main(int argc, char *argv[])
         }
 
         if (!status) { 
+            size_t bufsize = 2048;
+            char *buffer = malloc(bufsize);
+           
             // the child doesn't need the original socket
             close(sock); 
             if ((recv(new_fd, buffer, bufsize, 0)) == -1) {
@@ -159,6 +160,7 @@ int main(int argc, char *argv[])
                 syslog(LOG_ERR, "failed to send: %m");
             }
 
+            free(buffer);
             close(new_fd);
             exit(0);
         }
