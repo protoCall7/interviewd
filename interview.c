@@ -140,13 +140,13 @@ int main(int argc, char *argv[])
         syslog(LOG_INFO, "received connection from %s", s);
 
         // child process starts here
-        status = fork();
-        if (status == -1) {
+        pid = fork();
+        if (pid == -1) {
             syslog(LOG_ERR, "failed to fork: %m");
             exit(1); 
         }
 
-        if (!status) { 
+        if (!pid) { 
             size_t bufsize = 2048;
             char *buffer = malloc(bufsize);
            
